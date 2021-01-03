@@ -1,8 +1,13 @@
-from typing import Sequence, Tuple, Any, Callable, Optional
+import asyncio
+import os
+from typing import Sequence, Tuple, Any, Callable, Optional, Iterable
 
 import MeCab
+import aioconsole
+import discord
 
 import mecabpy.ipa
+import discord_bot
 
 
 def _is_question(sentence: str) -> bool:
@@ -54,8 +59,66 @@ def _find_last(condition: Callable[[Any], bool], sequence: Sequence) -> Tuple[Op
     return None, None
 
 
+def _contains_any(target: str, candidate_list: Iterable[str]) -> bool:
+    """指定した文字列に特定の文字列のいずれかが含まれるかどうかをチェックする。
+
+    Args:
+        target:
+            候補文字列を含むかどうかを判定する文字列
+        candidate_list:
+            候補文字列からなるリスト
+
+    Returns:
+        target が candidate_list のいずれかの文字列を含むなら True、そうでないなら False。
+    """
+    for candidate in candidate_list:
+        if candidate in target:
+            return True
+    return False
+
+
+class ServalChatAlgorithm(discord_bot.ChatAlgorithm):
+    def input_message(self, message: discord.Message, self_client: discord.Client) -> Optional[str]:
+        # 自身や他のBotからのメッセージには応答しない
+        if message.author.bot or message.author == self_client:
+            return None
+
+        # チャンネル名に特定文字列が含まれない場合は応答しない
+        channel_name = message.channel.name
+        if not _contains_any(channel_name, ('サバンナ', 'さばんな')):
+            return None
+
+        print('メッセージが送られました')
+        print('サーバ', message.guild.name)
+        print('チャンネル', message.channel.name)
+        print('送信者', message.author.display_name)
+        print('内容', message.content)
+
+        # 質問文かそうでないかで応答を変える
+        if _is_question(message.content):
+            return 'わかんないや'
+        else:
+            return 'すごーい'
+
+
 def main():
-    pass
+    bot_token = os.environ.get('SERVAL_CHAT_TOKEN')
+
+    if bot_token is None:
+        raise ValueError('環境変数に SERVAL_CHAT_TOKEN (使用するボットトークン) が指定されていません')
+
+    chat_bot = discord_bot.ChatBot(ServalChatAlgorithm(), bot_token, name='サーバル')
+
+    # 何らかの標準入力があるまで待機し、標準入力があれば bot を停止する非同期関数
+    async def wait_input_and_close():
+        # キーボード入力があるまで待機
+        await aioconsole.ainput()
+
+        # bot を終了
+        await chat_bot.close()
+
+    # discord イベントの待機と、標準入力の待機を並列して行う
+    asyncio.get_event_loop().run_until_complete(asyncio.gather(chat_bot.start(), wait_input_and_close()))
 
 
 if __name__ == '__main__':
