@@ -1,6 +1,6 @@
 import pytest
 
-from serval_chat import _is_question
+from serval_chat_algorithm._algorithm import _is_question
 
 
 class TestJudgeQuestion:

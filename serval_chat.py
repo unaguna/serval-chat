@@ -1,61 +1,30 @@
-from typing import Sequence, Tuple, Any, Callable, Optional
+import asyncio
+import os
 
-import MeCab
+import aioconsole
 
-import mecabpy.ipa
-
-
-def _is_question(sentence: str) -> bool:
-    """文が質問文かどうかを判定する。
-
-    Args:
-        sentence: 判定する文
-
-    Returns:
-        質問文なら True、そうでないなら False。
-    """
-    nodes = tuple(mecabpy.ipa.parse_to_node(sentence, MeCab.Tagger("-Ochasen")))
-
-    # 最後の非記号単語より後に疑問符がついていたら質問文==================================================
-    last_not_symbol_index, _ = _find_last(_is_not_symbol, nodes)
-    surface_after_last_not_symbol = tuple(map(lambda n: n.surface, nodes[last_not_symbol_index+1:]))
-    if '?' in surface_after_last_not_symbol or '？' in surface_after_last_not_symbol:
-        return True
-
-    # 最後の終助詞が疑問の意味を持つなら質問文===========================================================
-    end_joshi_list = tuple(filter(_is_end_joshi, nodes))
-    if len(end_joshi_list) > 0:
-        # 最後の終助詞が「か」「の」なら質問文
-        last_end_joshi = end_joshi_list[-1]
-        if last_end_joshi.surface in ('か', 'の'):
-            return True
-
-    return False
-
-
-def _is_end_joshi(node: mecabpy.ipa.Node) -> bool:
-    return '終助詞' == node.feature.word_class1
-
-
-def _is_symbol(node: mecabpy.ipa.Node) -> bool:
-    return '記号' == node.feature.word_class0
-
-
-def _is_not_symbol(node: mecabpy.ipa.Node) -> bool:
-    return node.surface and not _is_symbol(node)
-
-
-def _find_last(condition: Callable[[Any], bool], sequence: Sequence) -> Tuple[Optional[int], Any]:
-    target_list = tuple(sequence)
-    for i in reversed(range(len(target_list))):
-        if condition(target_list[i]):
-            return i, target_list[i]
-
-    return None, None
+import discord_bot
+from serval_chat_algorithm import ServalChatAlgorithm
 
 
 def main():
-    pass
+    bot_token = os.environ.get('SERVAL_CHAT_TOKEN')
+
+    if bot_token is None:
+        raise ValueError('環境変数に SERVAL_CHAT_TOKEN (使用するボットトークン) が指定されていません')
+
+    chat_bot = discord_bot.ChatBot(ServalChatAlgorithm(), bot_token, name='サーバル')
+
+    # 何らかの標準入力があるまで待機し、標準入力があれば bot を停止する非同期関数
+    async def wait_input_and_close():
+        # キーボード入力があるまで待機
+        await aioconsole.ainput()
+
+        # bot を終了
+        await chat_bot.close()
+
+    # discord イベントの待機と、標準入力の待機を並列して行う
+    asyncio.get_event_loop().run_until_complete(asyncio.gather(chat_bot.start(), wait_input_and_close()))
 
 
 if __name__ == '__main__':
