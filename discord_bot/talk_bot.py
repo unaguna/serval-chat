@@ -66,6 +66,10 @@ class ChatBot:
 
 
 if __name__ == '__main__':
+    # サンプルの BOT を起動する。
+    # トークンは実行時引数に指定すること。
+    # 標準入力で Enter を入力することで停止する。
+
     args = sys.argv[1:]
 
     if len(args) < 1:

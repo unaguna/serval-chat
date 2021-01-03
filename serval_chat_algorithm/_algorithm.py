@@ -36,18 +36,35 @@ def _is_question(sentence: str) -> bool:
 
 
 def _is_end_joshi(node: mecabpy.ipa.Node) -> bool:
+    """ノードが終助詞のものかどうかを判定する。
+    """
     return '終助詞' == node.feature.word_class1
 
 
 def _is_symbol(node: mecabpy.ipa.Node) -> bool:
+    """ノードが記号のものかどうかを判定する。
+    """
     return '記号' == node.feature.word_class0
 
 
 def _is_not_symbol(node: mecabpy.ipa.Node) -> bool:
+    """ノードが記号でない単語のものであるかどうかを判定する。
+    """
     return node.surface and not _is_symbol(node)
 
 
 def _find_last(condition: Callable[[Any], bool], sequence: Sequence) -> Tuple[Optional[int], Any]:
+    """条件に合う要素をシーケンスの末尾から順に探す。
+
+    複数存在する場合、もっとも index が大きいものが返される。
+
+    Args:
+        condition: 条件
+        sequence: 要素を探すシーケンス
+
+    Returns:
+        要素が見つかればその index と 要素。見つからなければ None と None。
+    """
     target_list = tuple(sequence)
     for i in reversed(range(len(target_list))):
         if condition(target_list[i]):
@@ -75,6 +92,8 @@ def _contains_any(target: str, candidate_list: Iterable[str]) -> bool:
 
 
 class ServalChatAlgorithm(discord_bot.ChatAlgorithm):
+    """チャットボット ServalChat の応答アルゴリズム
+    """
     def input_message(self, message: discord.Message, self_client: discord.Client) -> Optional[str]:
         # 自身や他のBotからのメッセージには応答しない
         if message.author.bot or message.author == self_client:
