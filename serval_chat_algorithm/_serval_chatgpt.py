@@ -47,7 +47,7 @@ class Context:
             self.load()
             self._write_fp = open(self.get_active_filepath(), mode="ab+")
         else:
-            os.makedirs(os.path.dirname(self.get_active_filepath()))
+            os.makedirs(os.path.dirname(self.get_active_filepath()), exist_ok=True)
             self._messages = []
             self._write_fp = open(self.get_active_filepath(), mode="ab+")
             self.push_message("system", self._initial_instruction)
@@ -99,11 +99,14 @@ class Context:
 
         self._write_fp.close()
 
+        self._messages = []
+
         archive_filepath = self.get_archive_filepath()
-        os.makedirs(os.path.dirname(archive_filepath))
+        os.makedirs(os.path.dirname(archive_filepath), exist_ok=True)
         os.rename(self.get_active_filepath(), archive_filepath)
 
         self._write_fp = open(self.get_active_filepath(), mode="ab+")
+        self.push_message("system", self._initial_instruction)
 
 
 class ChatgptAdaptor:
@@ -171,7 +174,8 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
 
     def forget_context(self, interaction: Interaction):
         channel_id = interaction.channel.id
-        # TODO: context の forget_context を呼ぶ
+        if channel_id in self._chatgpt_adapters:
+            self._chatgpt_adapters[channel_id].context.forget_context()
 
     def input_message(self, message: discord.Message, self_client: discord.Client) -> Optional[str]:
         # 自身や他のBotからのメッセージには応答しない
