@@ -30,6 +30,7 @@ class ChatBot:
 
     discord への接続と送受信を行う。
     """
+    _intents: discord.Intents
     _chat_algorithm: ChatAlgorithm
     _bot_token: str
     _name: str
@@ -38,7 +39,9 @@ class ChatBot:
         self._chat_algorithm = algorithm
         self._bot_token = bot_token
         self._name = name
-        self._client = discord.Client()
+        self._intents = discord.Intents.default()
+        self._intents.message_content = True
+        self._client = discord.Client(intents=self._intents)
 
         self._client.event(self.on_ready)
         self._client.event(self.on_message)
