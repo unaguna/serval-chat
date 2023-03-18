@@ -1,5 +1,5 @@
 import asyncio
-import os
+import sys
 
 import aioconsole
 
@@ -9,8 +9,9 @@ from serval_chat_algorithm import ServalMecabChatAlgorithm, ServalChatgptChatAlg
 
 
 def main():
+    args = sys.argv
     config = Config("")
-    config.from_pyfile("./config.py")
+    config.from_pyfile(args[1])
 
     chat_bot = discord_bot.ChatBot(ServalChatgptChatAlgorithm(config['CHATGPT_API_KEY']),
                                    bot_token=config['DISCORD_BOT_TOKEN'],
