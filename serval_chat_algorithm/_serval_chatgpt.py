@@ -24,20 +24,24 @@ def _contains_any(target: str, candidate_list: Iterable[str]) -> bool:
     return False
 
 
-class ServalChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
-    """チャットボット ServalChat の応答アルゴリズム
+class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
+    """ChatGPT によるチャットボットの応答アルゴリズム
     """
+    _initial_instruction: str
     _chatgpt_adapter: Generator[str, str, None]
 
-    def __init__(self, api_key: str):
+    def __init__(self, initial_instruction: Optional[str], api_key: str):
+        if initial_instruction is None:
+            initial_instruction = "あなたは、けものフレンズのサーバルちゃんになりきって会話してください。いいですね。"
+        self._initial_instruction = initial_instruction
+
         openai.api_key = api_key
         self._chatgpt_adapter = self.generate_message()
         next(self._chatgpt_adapter)
 
-    @staticmethod
-    def generate_message() -> Generator[str, str, None]:
+    def generate_message(self) -> Generator[str, str, None]:
         messages = [
-                {"role": "system", "content": "あなたは、けものフレンズのサーバルちゃんになりきって会話してください。いいですね。"},
+                {"role": "system", "content": self._initial_instruction},
         ]
         user_message = yield
         messages.append({"role": "user", "content": user_message})

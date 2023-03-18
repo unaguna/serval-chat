@@ -5,7 +5,7 @@ import aioconsole
 
 import discord_bot
 from cnf import Config
-from serval_chat_algorithm import ServalMecabChatAlgorithm, ServalChatgptChatAlgorithm
+from serval_chat_algorithm import ServalMecabChatAlgorithm, ChatgptChatAlgorithm
 
 
 def main():
@@ -13,7 +13,8 @@ def main():
     config = Config("")
     config.from_pyfile(args[1])
 
-    chat_bot = discord_bot.ChatBot(ServalChatgptChatAlgorithm(config['CHATGPT_API_KEY']),
+    chat_bot = discord_bot.ChatBot(ChatgptChatAlgorithm(config.get("CHATGPT_INITIAL_INSTRUCTION"),
+                                                        config['CHATGPT_API_KEY']),
                                    bot_token=config['DISCORD_BOT_TOKEN'],
                                    name=config.get('NAME', 'サーバル'))
 
