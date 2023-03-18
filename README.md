@@ -8,7 +8,7 @@ Serval Chat は実に**2種類**もの応答をすることができます。
 
 本モジュールの動作には以下のソフトウェアを使用します。
 
-- Python 3.7 以上の実行環境
+- Python 3.10 以上の実行環境
 - MeCab (バージョン 0.996 で動作確認)
     - 形態素解析ツールです。discord で受け取った他人の発言を解析するために使用します。
 
@@ -17,12 +17,12 @@ Serval Chat は実に**2種類**もの応答をすることができます。
 
 1. [MeCab](https://taku910.github.io/mecab/#download) 本体と辞書をダウンロードし、インストールする。（windows では、辞書付きのバイナリパッケージをダウンロード・インストールするだけで済みます）
 
-1. Discord Developer Portal で Application と Bot を作成する。
+1. Discord Developer Portal で Application と Bot を作成する。このとき、Bot の "Message Content Intent" を ON にする。
     - 補足: 作成した Bot のトークンは後で使用する。
 
 1. 作成した Bot を、サーバルと会話したいサーバに招待する。
 
-1. Python 3.7 以上が動作する環境を作る。
+1. Python 3.10 以上が動作する環境を作る。
     - **注意**: python の x86 or x64 は、MeCab のものに合わせること。
    
 1. 下記のコマンドで必要パッケージをインストールする。
