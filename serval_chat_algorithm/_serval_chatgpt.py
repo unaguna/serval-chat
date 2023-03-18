@@ -4,6 +4,7 @@ from typing import Optional, Iterable, Generator, Sequence, BinaryIO
 
 import discord
 import openai
+from discord import Interaction
 
 import discord_bot
 
@@ -58,6 +59,13 @@ class Context:
     def get_active_filepath(self):
         return os.path.join(self._context_dir_path, "active", str(self._bot_id), f"{self._channel_id}.txt")
 
+    def get_archive_filepath(self, timestamp: Optional[datetime.datetime] = None):
+        if timestamp is None:
+            timestamp = datetime.datetime.utcnow()
+
+        return os.path.join(self._context_dir_path, "archive", str(self._bot_id),
+                            f"{self._channel_id}-{timestamp:%Y%m%d%H%M%S}.txt")
+
     def load(self):
         if self._write_fp is not None:
             raise Exception("会話受付中は履歴をロードできません")
@@ -85,6 +93,17 @@ class Context:
 
     def get_messages(self) -> Sequence[dict]:
         return self._messages
+
+    def forget_context(self):
+        # 文脈ファイルを移動することで文脈を忘れる
+
+        self._write_fp.close()
+
+        archive_filepath = self.get_archive_filepath()
+        os.makedirs(os.path.dirname(archive_filepath))
+        os.rename(self.get_active_filepath(), archive_filepath)
+
+        self._write_fp = open(self.get_active_filepath(), mode="ab+")
 
 
 class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
@@ -132,6 +151,10 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
 
                 user_message = yield res['choices'][0]['message']['content']
                 context.push_message("user", user_message)
+
+    def forget_context(self, interaction: Interaction):
+        channel_id = interaction.channel.id
+        # TODO: context の forget_context を呼ぶ
 
     def input_message(self, message: discord.Message, self_client: discord.Client) -> Optional[str]:
         # 自身や他のBotからのメッセージには応答しない

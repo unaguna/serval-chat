@@ -5,6 +5,8 @@ from typing import Optional
 
 import aioconsole
 import discord
+from discord import Interaction
+from discord.app_commands import CommandTree
 
 
 class ChatAlgorithm(ABC):
@@ -24,6 +26,11 @@ class ChatAlgorithm(ABC):
         """
         ...
 
+    @abstractmethod
+    def forget_context(self, interaction: Interaction):
+        """文脈をリセットする"""
+        ...
+
     def close(self):
         pass
 
@@ -34,6 +41,7 @@ class ChatBot:
     discord への接続と送受信を行う。
     """
     _intents: discord.Intents
+    _command_tree: CommandTree
     _chat_algorithm: ChatAlgorithm
     _bot_token: str
     _name: str
@@ -45,18 +53,28 @@ class ChatBot:
         self._intents = discord.Intents.default()
         self._intents.message_content = True
         self._client = discord.Client(intents=self._intents)
+        self._command_tree = CommandTree(self._client)
 
         self._client.event(self.on_ready)
         self._client.event(self.on_message)
 
+        @self._command_tree.command()
+        async def forget_context(interaction: Interaction):
+            await self.command_forget_context(interaction)
+
     async def start(self):
         await self._client.start(self._bot_token)
+        await self._command_tree.sync()
 
     async def close(self):
         print(f'{self._name} を停止します')
         self._chat_algorithm.close()
         await self._client.change_presence(status=discord.Status.offline)
         await self._client.close()
+
+    async def command_forget_context(self, interaction: Interaction):
+        self._chat_algorithm.forget_context(interaction)
+        await interaction.response.send_message("文脈をリセットしました")
 
     async def on_ready(self):
         print(f'{self._name} が起動しました')
