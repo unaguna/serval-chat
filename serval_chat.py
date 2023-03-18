@@ -13,8 +13,9 @@ def main():
     config = Config("")
     config.from_pyfile(args[1])
 
-    chat_bot = discord_bot.ChatBot(ChatgptChatAlgorithm(config.get("CHATGPT_INITIAL_INSTRUCTION"),
-                                                        config['CHATGPT_API_KEY']),
+    chat_bot = discord_bot.ChatBot(ChatgptChatAlgorithm(channels=config.get("DISCORD_CHANNELS"),
+                                                        initial_instruction=config.get("CHATGPT_INITIAL_INSTRUCTION"),
+                                                        api_key=config['CHATGPT_API_KEY']),
                                    bot_token=config['DISCORD_BOT_TOKEN'],
                                    name=config.get('NAME', 'サーバル'))
 

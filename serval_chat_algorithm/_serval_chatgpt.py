@@ -1,4 +1,4 @@
-from typing import Optional, Iterable, Generator
+from typing import Optional, Iterable, Generator, Sequence
 
 import discord
 import openai
@@ -27,10 +27,13 @@ def _contains_any(target: str, candidate_list: Iterable[str]) -> bool:
 class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
     """ChatGPT によるチャットボットの応答アルゴリズム
     """
+    _channels: Optional[Sequence[int]]
     _initial_instruction: str
     _chatgpt_adapter: Generator[str, str, None]
 
-    def __init__(self, initial_instruction: Optional[str], api_key: str):
+    def __init__(self, *, channels: Optional[Sequence[int]] = None, initial_instruction: Optional[str], api_key: str):
+        self._channels = channels
+
         if initial_instruction is None:
             initial_instruction = "あなたは、けものフレンズのサーバルちゃんになりきって会話してください。いいですね。"
         self._initial_instruction = initial_instruction
@@ -40,6 +43,8 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
         next(self._chatgpt_adapter)
 
     def generate_message(self) -> Generator[str, str, None]:
+        """文脈を維持してChatGPTとやりとりするgenerator"""
+
         messages = [
                 {"role": "system", "content": self._initial_instruction},
         ]
@@ -63,10 +68,15 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
         if message.author.bot or message.author == self_client:
             return None
 
-        # チャンネル名に特定文字列が含まれない場合は応答しない
-        channel_name = message.channel.name
-        if not _contains_any(channel_name, ('サバンナ', 'さばんな')):
-            return None
+        if self._channels is not None:
+            # 指定のチャンネル以外では応答しない
+            if message.channel.id not in self._channels:
+                return None
+        else:
+            # チャンネル名に特定文字列が含まれない場合は応答しない
+            channel_name = message.channel.name
+            if not _contains_any(channel_name, ('サバンナ', 'さばんな')):
+                return None
 
         print('メッセージが送られました')
         print('サーバ', message.guild.name)
