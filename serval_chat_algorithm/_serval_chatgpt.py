@@ -106,13 +106,50 @@ class Context:
         self._write_fp = open(self.get_active_filepath(), mode="ab+")
 
 
+class ChatgptAdaptor:
+    _model: str
+    context: Context
+    gen_iter: Generator[str, str, None]
+
+    def __init__(self, model: str, context: Context):
+        self._model = model
+        self.context = context
+        self.gen_iter = self._generate_message(self.context)
+        next(self.gen_iter)
+
+    def _generate_message(self, context: Context) -> Generator[str, str, None]:
+        """文脈を維持してChatGPTとやりとりするgenerator"""
+
+        with context:
+            user_message = yield
+            context.push_message("user", user_message)
+
+            while True:
+                res = openai.ChatCompletion.create(
+                    model=self._model,
+                    messages=context.get_messages(),
+                )
+                # TODO: エラーが返ってきた際の処理など
+                res_message = res['choices'][0]['message']['content']
+                context.push_message("assistant", res_message)
+
+                user_message = yield res['choices'][0]['message']['content']
+                context.push_message("user", user_message)
+
+    def send(self, content: str) -> str:
+        return self.gen_iter.send(content)
+
+    def close(self):
+        self.gen_iter.close()
+
+
 class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
     """ChatGPT によるチャットボットの応答アルゴリズム
     """
     _channels: Optional[Sequence[int]]
     _model: Optional[str]
     _initial_instruction: str
-    _chatgpt_adapters: dict[int, Generator[str, str, None]]
+    _chatgpt_adapters: dict[int, ChatgptAdaptor]
     _context_dir_path: Optional[str]
 
     def __init__(self, *, model: Optional[str] = None, channels: Optional[Sequence[int]] = None,
@@ -131,26 +168,6 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
     def close(self):
         for chatgpt_adapter in self._chatgpt_adapters.values():
             chatgpt_adapter.close()
-
-    def generate_message(self, bot_id: int, channel_id: int) -> Generator[str, str, None]:
-        """文脈を維持してChatGPTとやりとりするgenerator"""
-
-        with Context(bot_id=bot_id, channel_id=channel_id, initial_instruction=self._initial_instruction,
-                     context_dir_path=self._context_dir_path) as context:
-            user_message = yield
-            context.push_message("user", user_message)
-
-            while True:
-                res = openai.ChatCompletion.create(
-                    model=self._model,
-                    messages=context.get_messages(),
-                )
-                # TODO: エラーが返ってきた際の処理など
-                res_message = res['choices'][0]['message']['content']
-                context.push_message("assistant", res_message)
-
-                user_message = yield res['choices'][0]['message']['content']
-                context.push_message("user", user_message)
 
     def forget_context(self, interaction: Interaction):
         channel_id = interaction.channel.id
@@ -178,7 +195,9 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
         print('内容', message.content)
 
         if message.channel.id not in self._chatgpt_adapters:
-            self._chatgpt_adapters[message.channel.id] = self.generate_message(self_client.user.id, message.channel.id)
-            next(self._chatgpt_adapters[message.channel.id])
+            context = Context(bot_id=self_client.user.id, channel_id=message.channel.id,
+                              initial_instruction=self._initial_instruction,
+                              context_dir_path=self._context_dir_path)
+            self._chatgpt_adapters[message.channel.id] = ChatgptAdaptor(self._model, context)
 
         return self._chatgpt_adapters[message.channel.id].send(message.content)
