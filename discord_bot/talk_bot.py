@@ -24,6 +24,9 @@ class ChatAlgorithm(ABC):
         """
         ...
 
+    def close(self):
+        pass
+
 
 class ChatBot:
     """discord のチャットボット。
@@ -51,6 +54,7 @@ class ChatBot:
 
     async def close(self):
         print(f'{self._name} を停止します')
+        self._chat_algorithm.close()
         await self._client.change_presence(status=discord.Status.offline)
         await self._client.close()
 

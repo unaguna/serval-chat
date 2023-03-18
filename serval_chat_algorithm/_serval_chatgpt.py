@@ -1,4 +1,4 @@
-from typing import Optional, Iterable, Generator, Sequence
+from typing import Optional, Iterable, Generator, Sequence, TextIO
 
 import discord
 import openai
@@ -24,6 +24,32 @@ def _contains_any(target: str, candidate_list: Iterable[str]) -> bool:
     return False
 
 
+class Context:
+    _channel_id: int
+    _messages: list[dict]
+    _write_fp: TextIO
+
+    def __init__(self, *, channel_id: int, initial_instruction: str):
+        self._channel_id = channel_id
+        self._messages = [
+            {"role": "system", "content": initial_instruction},
+        ]
+
+    def __enter__(self):
+        self._write_fp = open(f"./env/{self._channel_id}.txt", mode="w+", encoding="utf-8")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._write_fp.__exit__(exc_type, exc_val, exc_tb)
+
+    def push_message(self, role: str, content: str):
+        self._messages.append({"role": role, "content": content})
+        self._write_fp.write(f"{role}\t{content}\n")
+
+    def get_messages(self) -> Sequence[dict]:
+        return self._messages
+
+
 class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
     """ChatGPT によるチャットボットの応答アルゴリズム
     """
@@ -44,26 +70,28 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
         openai.api_key = api_key
         self._chatgpt_adapters = {}
 
-    def generate_message(self) -> Generator[str, str, None]:
+    def close(self):
+        for chatgpt_adapter in self._chatgpt_adapters.values():
+            chatgpt_adapter.close()
+
+    def generate_message(self, channel_id: int) -> Generator[str, str, None]:
         """文脈を維持してChatGPTとやりとりするgenerator"""
 
-        messages = [
-            {"role": "system", "content": self._initial_instruction},
-        ]
-        user_message = yield
-        messages.append({"role": "user", "content": user_message})
+        with Context(channel_id=channel_id, initial_instruction=self._initial_instruction) as context:
+            user_message = yield
+            context.push_message("user", user_message)
 
-        while True:
-            res = openai.ChatCompletion.create(
-                model=self._model,
-                messages=messages,
-            )
-            # TODO: エラーが返ってきた際の処理など
-            res_message = res['choices'][0]['message']['content']
-            messages.append({"role": "assistant", "content": res_message})
+            while True:
+                res = openai.ChatCompletion.create(
+                    model=self._model,
+                    messages=context.get_messages(),
+                )
+                # TODO: エラーが返ってきた際の処理など
+                res_message = res['choices'][0]['message']['content']
+                context.push_message("assistant", res_message)
 
-            user_message = yield res['choices'][0]['message']['content']
-            messages.append({"role": "user", "content": user_message})
+                user_message = yield res['choices'][0]['message']['content']
+                context.push_message("user", user_message)
 
     def input_message(self, message: discord.Message, self_client: discord.Client) -> Optional[str]:
         # 自身や他のBotからのメッセージには応答しない
@@ -87,7 +115,7 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
         print('内容', message.content)
 
         if message.channel.id not in self._chatgpt_adapters:
-            self._chatgpt_adapters[message.channel.id] = self.generate_message()
+            self._chatgpt_adapters[message.channel.id] = self.generate_message(message.channel.id)
             next(self._chatgpt_adapters[message.channel.id])
 
         return self._chatgpt_adapters[message.channel.id].send(message.content)
