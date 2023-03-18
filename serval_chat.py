@@ -15,7 +15,7 @@ def main():
 
     chat_bot = discord_bot.ChatBot(ServalChatgptChatAlgorithm(config['CHATGPT_API_KEY']),
                                    bot_token=config['DISCORD_BOT_TOKEN'],
-                                   name='サーバル')
+                                   name=config.get('NAME', 'サーバル'))
 
     # 何らかの標準入力があるまで待機し、標準入力があれば bot を停止する非同期関数
     async def wait_input_and_close():
