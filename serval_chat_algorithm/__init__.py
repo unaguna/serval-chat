@@ -1,1 +1,1 @@
-from ._algorithm import ServalChatAlgorithm
+from ._serval_mecab import ServalMecabChatAlgorithm

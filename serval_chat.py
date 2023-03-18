@@ -4,7 +4,7 @@ import os
 import aioconsole
 
 import discord_bot
-from serval_chat_algorithm import ServalChatAlgorithm
+from serval_chat_algorithm import ServalMecabChatAlgorithm
 
 
 def main():
@@ -13,7 +13,7 @@ def main():
     if bot_token is None:
         raise ValueError('環境変数に SERVAL_CHAT_TOKEN (使用するボットトークン) が指定されていません')
 
-    chat_bot = discord_bot.ChatBot(ServalChatAlgorithm(), bot_token, name='サーバル')
+    chat_bot = discord_bot.ChatBot(ServalMecabChatAlgorithm(), bot_token, name='サーバル')
 
     # 何らかの標準入力があるまで待機し、標準入力があれば bot を停止する非同期関数
     async def wait_input_and_close():
