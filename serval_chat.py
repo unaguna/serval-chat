@@ -13,10 +13,19 @@ def main():
     config = Config("")
     config.from_pyfile(args[1])
 
-    chat_bot = discord_bot.ChatBot(ChatgptChatAlgorithm(model=config.get("CHATGPT_MODEL"),
-                                                        channels=config.get("DISCORD_CHANNELS"),
-                                                        initial_instruction=config.get("CHATGPT_INITIAL_INSTRUCTION"),
-                                                        api_key=config['CHATGPT_API_KEY']),
+    # アルゴリズム設定を選択
+    chatbot_model = config["CHATBOT_MODEL"].casefold()
+    if chatbot_model == "chatgpt":
+        algorithm = ChatgptChatAlgorithm(model=config.get("CHATGPT_MODEL"),
+                                         channels=config.get("DISCORD_CHANNELS"),
+                                         initial_instruction=config.get("CHATGPT_INITIAL_INSTRUCTION"),
+                                         api_key=config['CHATGPT_API_KEY'])
+    elif chatbot_model == "simple_mecab":
+        algorithm = ServalMecabChatAlgorithm()
+    else:
+        raise ValueError(config["CHATBOT_MODEL"])
+
+    chat_bot = discord_bot.ChatBot(algorithm,
                                    bot_token=config['DISCORD_BOT_TOKEN'],
                                    name=config.get('NAME', 'サーバル'))
 
