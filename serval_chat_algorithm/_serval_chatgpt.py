@@ -30,7 +30,7 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
     _channels: Optional[Sequence[int]]
     _model: Optional[str]
     _initial_instruction: str
-    _chatgpt_adapter: Generator[str, str, None]
+    _chatgpt_adapters: dict[int, Generator[str, str, None]]
 
     def __init__(self, *, model: Optional[str] = None, channels: Optional[Sequence[int]] = None,
                  initial_instruction: Optional[str], api_key: str):
@@ -42,8 +42,7 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
         self._initial_instruction = initial_instruction
 
         openai.api_key = api_key
-        self._chatgpt_adapter = self.generate_message()
-        next(self._chatgpt_adapter)
+        self._chatgpt_adapters = {}
 
     def generate_message(self) -> Generator[str, str, None]:
         """文脈を維持してChatGPTとやりとりするgenerator"""
@@ -87,4 +86,8 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
         print('送信者', message.author.display_name)
         print('内容', message.content)
 
-        return self._chatgpt_adapter.send(message.content)
+        if message.channel.id not in self._chatgpt_adapters:
+            self._chatgpt_adapters[message.channel.id] = self.generate_message()
+            next(self._chatgpt_adapters[message.channel.id])
+
+        return self._chatgpt_adapters[message.channel.id].send(message.content)
