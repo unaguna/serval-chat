@@ -1,20 +1,33 @@
 import asyncio
-import os
+import sys
 
 import aioconsole
 
 import discord_bot
-from serval_chat_algorithm import ServalMecabChatAlgorithm, ServalChatgptChatAlgorithm
+from cnf import Config
+from serval_chat_algorithm import ServalMecabChatAlgorithm, ChatgptChatAlgorithm
 
 
 def main():
-    bot_token = os.environ.get('SERVAL_CHAT_TOKEN')
+    args = sys.argv
+    config = Config("")
+    config.from_pyfile(args[1])
 
-    if bot_token is None:
-        raise ValueError('環境変数に SERVAL_CHAT_TOKEN (使用するボットトークン) が指定されていません')
+    # アルゴリズム設定を選択
+    chatbot_model = config["CHATBOT_MODEL"].casefold()
+    if chatbot_model == "chatgpt":
+        algorithm = ChatgptChatAlgorithm(model=config.get("CHATGPT_MODEL"),
+                                         channels=config.get("DISCORD_CHANNELS"),
+                                         initial_instruction=config.get("CHATGPT_INITIAL_INSTRUCTION"),
+                                         api_key=config['CHATGPT_API_KEY'])
+    elif chatbot_model == "simple_mecab":
+        algorithm = ServalMecabChatAlgorithm()
+    else:
+        raise ValueError(config["CHATBOT_MODEL"])
 
-    chat_bot = discord_bot.ChatBot(ServalChatgptChatAlgorithm(os.environ['SERVAL_CHAT_CHATGPT_TOKEN']), bot_token,
-                                   name='サーバル')
+    chat_bot = discord_bot.ChatBot(algorithm,
+                                   bot_token=config['DISCORD_BOT_TOKEN'],
+                                   name=config.get('NAME', 'サーバル'))
 
     # 何らかの標準入力があるまで待機し、標準入力があれば bot を停止する非同期関数
     async def wait_input_and_close():
