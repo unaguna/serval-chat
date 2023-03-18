@@ -1,4 +1,5 @@
 import datetime
+import os.path
 from typing import Optional, Iterable, Generator, Sequence, BinaryIO
 
 import discord
@@ -29,20 +30,41 @@ class Context:
     _channel_id: int
     _initial_instruction: str
     _messages: list[dict]
-    _write_fp: BinaryIO
+    _write_fp: Optional[BinaryIO] = None
 
     def __init__(self, *, channel_id: int, initial_instruction: str):
         self._channel_id = channel_id
         self._initial_instruction = initial_instruction
 
     def __enter__(self):
-        self._messages = []
-        self._write_fp = open(f"./env/{self._channel_id}.txt", mode="ab+")
-        self.push_message("system", self._initial_instruction)
+        if os.path.exists(self.get_active_filepath()):
+            self.load()
+            self._write_fp = open(self.get_active_filepath(), mode="ab+")
+        else:
+            self._messages = []
+            self._write_fp = open(self.get_active_filepath(), mode="ab+")
+            self.push_message("system", self._initial_instruction)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._write_fp.__exit__(exc_type, exc_val, exc_tb)
+
+    def get_active_filepath(self):
+        return f"./env/{self._channel_id}.txt"
+
+    def load(self):
+        if self._write_fp is not None:
+            raise Exception("会話受付中は履歴をロードできません")
+
+        self._messages = []
+        with open(self.get_active_filepath(), mode="r") as fp:
+            for line in fp:
+                fields = line.split("\0")
+                role = fields[1]
+                content = fields[2].encode("utf-8").decode("unicode-escape")
+                print(role, content)
+
+                self._messages.append({"role": role, "content": content})
 
     def push_message(self, role: str, content: str):
         self._messages.append({"role": role, "content": content})
@@ -53,6 +75,7 @@ class Context:
         self._write_fp.write(b"\0")
         self._write_fp.write(content.encode("unicode-escape"))
         self._write_fp.write(b"\n")
+        self._write_fp.flush()
 
     def get_messages(self) -> Sequence[dict]:
         return self._messages
