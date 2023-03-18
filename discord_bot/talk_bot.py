@@ -58,13 +58,12 @@ class ChatBot:
         self._client.event(self.on_ready)
         self._client.event(self.on_message)
 
-        @self._command_tree.command()
+        @self._command_tree.command(description="このチャンネルでの会話の文脈をリセットします。")
         async def forget_context(interaction: Interaction):
             await self.command_forget_context(interaction)
 
     async def start(self):
         await self._client.start(self._bot_token)
-        await self._command_tree.sync()
 
     async def close(self):
         print(f'{self._name} を停止します')
@@ -77,6 +76,7 @@ class ChatBot:
         await interaction.response.send_message("文脈をリセットしました")
 
     async def on_ready(self):
+        await self._command_tree.sync()
         print(f'{self._name} が起動しました')
 
     async def on_message(self, message: discord.Message):
