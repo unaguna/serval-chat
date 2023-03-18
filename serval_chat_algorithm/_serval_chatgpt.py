@@ -1,4 +1,4 @@
-from typing import Optional, Iterable, Generator, Sequence, TextIO
+from typing import Optional, Iterable, Generator, Sequence, TextIO, BinaryIO
 
 import discord
 import openai
@@ -27,7 +27,7 @@ def _contains_any(target: str, candidate_list: Iterable[str]) -> bool:
 class Context:
     _channel_id: int
     _messages: list[dict]
-    _write_fp: TextIO
+    _write_fp: BinaryIO
 
     def __init__(self, *, channel_id: int, initial_instruction: str):
         self._channel_id = channel_id
@@ -36,7 +36,7 @@ class Context:
         ]
 
     def __enter__(self):
-        self._write_fp = open(f"./env/{self._channel_id}.txt", mode="w+", encoding="utf-8")
+        self._write_fp = open(f"./env/{self._channel_id}.txt", mode="wb+")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -44,7 +44,11 @@ class Context:
 
     def push_message(self, role: str, content: str):
         self._messages.append({"role": role, "content": content})
-        self._write_fp.write(f"{role}\t{content}\n")
+
+        self._write_fp.write(role.encode("utf-8"))
+        self._write_fp.write(b"\0")
+        self._write_fp.write(content.encode("unicode-escape"))
+        self._write_fp.write(b"\n")
 
     def get_messages(self) -> Sequence[dict]:
         return self._messages
