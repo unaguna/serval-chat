@@ -4,16 +4,16 @@ import os
 import aioconsole
 
 import discord_bot
+from cnf import Config
 from serval_chat_algorithm import ServalMecabChatAlgorithm, ServalChatgptChatAlgorithm
 
 
 def main():
-    bot_token = os.environ.get('SERVAL_CHAT_TOKEN')
+    config = Config("")
+    config.from_pyfile("./config.py")
 
-    if bot_token is None:
-        raise ValueError('環境変数に SERVAL_CHAT_TOKEN (使用するボットトークン) が指定されていません')
-
-    chat_bot = discord_bot.ChatBot(ServalChatgptChatAlgorithm(os.environ['SERVAL_CHAT_CHATGPT_TOKEN']), bot_token,
+    chat_bot = discord_bot.ChatBot(ServalChatgptChatAlgorithm(config['CHATGPT_API_KEY']),
+                                   bot_token=config['DISCORD_BOT_TOKEN'],
                                    name='サーバル')
 
     # 何らかの標準入力があるまで待機し、標準入力があれば bot を停止する非同期関数
