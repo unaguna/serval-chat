@@ -13,7 +13,8 @@ def main():
     config = Config("")
     config.from_pyfile(args[1])
 
-    chat_bot = discord_bot.ChatBot(ChatgptChatAlgorithm(channels=config.get("DISCORD_CHANNELS"),
+    chat_bot = discord_bot.ChatBot(ChatgptChatAlgorithm(model=config.get("CHATGPT_MODEL"),
+                                                        channels=config.get("DISCORD_CHANNELS"),
                                                         initial_instruction=config.get("CHATGPT_INITIAL_INSTRUCTION"),
                                                         api_key=config['CHATGPT_API_KEY']),
                                    bot_token=config['DISCORD_BOT_TOKEN'],

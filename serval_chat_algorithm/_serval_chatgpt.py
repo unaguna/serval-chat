@@ -28,10 +28,13 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
     """ChatGPT によるチャットボットの応答アルゴリズム
     """
     _channels: Optional[Sequence[int]]
+    _model: Optional[str]
     _initial_instruction: str
     _chatgpt_adapter: Generator[str, str, None]
 
-    def __init__(self, *, channels: Optional[Sequence[int]] = None, initial_instruction: Optional[str], api_key: str):
+    def __init__(self, *, model: Optional[str] = None, channels: Optional[Sequence[int]] = None,
+                 initial_instruction: Optional[str], api_key: str):
+        self._model = model if model is not None else "gpt-3.5-turbo"
         self._channels = channels
 
         if initial_instruction is None:
@@ -46,14 +49,14 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
         """文脈を維持してChatGPTとやりとりするgenerator"""
 
         messages = [
-                {"role": "system", "content": self._initial_instruction},
+            {"role": "system", "content": self._initial_instruction},
         ]
         user_message = yield
         messages.append({"role": "user", "content": user_message})
 
         while True:
             res = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=self._model,
                 messages=messages,
             )
             # TODO: エラーが返ってきた際の処理など
