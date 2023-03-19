@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import logging.config
 import sys
 
 import aioconsole
@@ -9,31 +10,13 @@ from cnf import Config
 from serval_chat_algorithm import ServalMecabChatAlgorithm, ChatgptChatAlgorithm
 
 
-def _set_logger(name=None):
-    formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(message)s')
-
-    # INFO以下のログを標準出力する
-    stdout_handler = logging.StreamHandler(stream=sys.stdout)
-    stdout_handler.setLevel(logging.DEBUG)
-    stdout_handler.addFilter(lambda record: record.levelno <= logging.INFO)
-    stdout_handler.setFormatter(formatter)
-
-    # WARNING以上のログを標準エラー出力する
-    stderr_handler = logging.StreamHandler(stream=sys.stderr)
-    stderr_handler.setLevel(logging.WARNING)
-    stderr_handler.setFormatter(formatter)
-
-    # ロガーにハンドラを設定する
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(stdout_handler)
-    logger.addHandler(stderr_handler)
-
-
 def main():
     args = sys.argv
     config = Config("")
     config.from_pyfile(args[1])
+
+    if "LOGGING" in config:
+        logging.config.dictConfig(config.get("LOGGING"))
 
     # アルゴリズム設定を選択
     chatbot_model = config["CHATBOT_MODEL"].casefold()
@@ -65,5 +48,4 @@ def main():
 
 
 if __name__ == '__main__':
-    _set_logger()
     main()
