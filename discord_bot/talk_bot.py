@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import sys
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -66,7 +67,7 @@ class ChatBot:
         await self._client.start(self._bot_token)
 
     async def close(self):
-        print(f'{self._name} を停止します')
+        logging.getLogger("servalchat.console").info(f'{self._name} を停止します')
         self._chat_algorithm.close()
         await self._client.change_presence(status=discord.Status.offline)
         await self._client.close()
@@ -77,9 +78,14 @@ class ChatBot:
 
     async def on_ready(self):
         await self._command_tree.sync()
-        print(f'{self._name} が起動しました')
+        logging.getLogger("servalchat.console").info(f'{self._name} が起動しました')
 
     async def on_message(self, message: discord.Message):
+        logging.getLogger("servalchat.discord").debug(f"メッセージが送られました; server={message.guild.name}, "
+                                                      f"channel={message.channel.name}, "
+                                                      f"sender={message.author.display_name}, "
+                                                      f"content={message.content}")
+
         response = self._chat_algorithm.input_message(message, self._client)
 
         # 送信メッセージが指定された場合、メッセージを送信する。
