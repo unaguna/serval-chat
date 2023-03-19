@@ -4,7 +4,7 @@ from typing import Optional, Iterable, Generator, Sequence, BinaryIO
 
 import discord
 import openai
-from discord import Interaction
+from discord import Interaction, ChannelType
 
 import discord_bot
 
@@ -180,6 +180,10 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
     def input_message(self, message: discord.Message, self_client: discord.Client) -> Optional[str]:
         # 自身や他のBotからのメッセージには応答しない
         if message.author.bot or message.author == self_client:
+            return None
+
+        # スレッドでの会話では文脈を正しく維持できないので応答しない
+        if message.channel.type is not ChannelType.text:
             return None
 
         if self._channels is not None:
