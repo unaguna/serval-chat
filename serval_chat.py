@@ -1,4 +1,6 @@
 import asyncio
+import logging
+import logging.config
 import sys
 
 import aioconsole
@@ -12,6 +14,9 @@ def main():
     args = sys.argv
     config = Config("")
     config.from_pyfile(args[1])
+
+    if "LOGGING" in config:
+        logging.config.dictConfig(config.get("LOGGING"))
 
     # アルゴリズム設定を選択
     chatbot_model = config["CHATBOT_MODEL"].casefold()

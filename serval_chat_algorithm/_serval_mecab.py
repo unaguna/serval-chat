@@ -104,12 +104,6 @@ class ServalMecabChatAlgorithm(discord_bot.ChatAlgorithm):
         if not _contains_any(channel_name, ('サバンナ', 'さばんな')):
             return None
 
-        print('メッセージが送られました')
-        print('サーバ', message.guild.name)
-        print('チャンネル', message.channel.name)
-        print('送信者', message.author.display_name)
-        print('内容', message.content)
-
         # 質問文かそうでないかで応答を変える
         if _is_question(message.content):
             return 'わかんないや'

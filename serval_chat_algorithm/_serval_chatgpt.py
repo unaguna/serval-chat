@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os.path
 from typing import Optional, Iterable, Generator, Sequence, BinaryIO
 
@@ -7,6 +8,7 @@ import openai
 from discord import Interaction, ChannelType
 
 import discord_bot
+import log
 
 
 def _contains_any(target: str, candidate_list: Iterable[str]) -> bool:
@@ -70,15 +72,20 @@ class Context:
         if self._write_fp is not None:
             raise Exception("会話受付中は履歴をロードできません")
 
+        filepath = self.get_active_filepath()
+        log.sc_chatgpt.debug(f"文脈をロードします: {filepath}")
         self._messages = []
-        with open(self.get_active_filepath(), mode="r") as fp:
+        with open(filepath, mode="r") as fp:
             for line in fp:
                 fields = line.split("\0")
                 role = fields[1]
                 content = fields[2].encode("utf-8").decode("unicode-escape")
-                print(role, content)
+                log.sc_chatgpt.debug(
+                    "loading context: {filepath}: {role} {content}".format(filepath=filepath, role=role,
+                                                                           content=content.removesuffix("\n")))
 
                 self._messages.append({"role": role, "content": content})
+        log.sc_chatgpt.info(f"文脈をロードしました: {filepath}")
 
     def push_message(self, role: str, content: str):
         self._messages.append({"role": role, "content": content})
@@ -195,12 +202,6 @@ class ChatgptChatAlgorithm(discord_bot.ChatAlgorithm):
             channel_name = message.channel.name
             if not _contains_any(channel_name, ('サバンナ', 'さばんな')):
                 return None
-
-        print('メッセージが送られました')
-        print('サーバ', message.guild.name)
-        print('チャンネル', message.channel.name)
-        print('送信者', message.author.display_name)
-        print('内容', message.content)
 
         if message.channel.id not in self._chatgpt_adapters:
             context = Context(bot_id=self_client.user.id, channel_id=message.channel.id,
