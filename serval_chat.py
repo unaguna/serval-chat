@@ -19,7 +19,8 @@ def main():
         algorithm = ChatgptChatAlgorithm(model=config.get("CHATGPT_MODEL"),
                                          channels=config.get("DISCORD_CHANNELS"),
                                          initial_instruction=config.get("CHATGPT_INITIAL_INSTRUCTION"),
-                                         api_key=config['CHATGPT_API_KEY'])
+                                         api_key=config['CHATGPT_API_KEY'],
+                                         context_dir_path=config.get("CHATGPT_CONTEXT_DIR"))
     elif chatbot_model == "simple_mecab":
         algorithm = ServalMecabChatAlgorithm()
     else:
