@@ -1,5 +1,5 @@
 import asyncio
-import logging
+import inspect
 import sys
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -8,6 +8,8 @@ import aioconsole
 import discord
 from discord import Interaction
 from discord.app_commands import CommandTree
+
+import log
 
 
 class ChatAlgorithm(ABC):
@@ -61,13 +63,15 @@ class ChatBot:
 
         @self._command_tree.command(description="このチャンネルでの会話の文脈をリセットします。")
         async def forget_context(interaction: Interaction):
+            log.sc_discord.debug(f"command received: {inspect.currentframe().f_code.co_name}")
             await self.command_forget_context(interaction)
+            log.sc_discord.debug(f"command completed: {inspect.currentframe().f_code.co_name}")
 
     async def start(self):
         await self._client.start(self._bot_token)
 
     async def close(self):
-        logging.getLogger("servalchat.console").info(f'{self._name} を停止します')
+        log.sc_console.info(f'{self._name} を停止します')
         self._chat_algorithm.close()
         await self._client.change_presence(status=discord.Status.offline)
         await self._client.close()
@@ -77,14 +81,15 @@ class ChatBot:
         await interaction.response.send_message("文脈をリセットしました")
 
     async def on_ready(self):
+        log.sc_console.info(f'{self._name} が起動しました')
         await self._command_tree.sync()
-        logging.getLogger("servalchat.console").info(f'{self._name} が起動しました')
+        log.sc_discord.info('コマンドを同期しました')
 
     async def on_message(self, message: discord.Message):
-        logging.getLogger("servalchat.discord").debug(f"メッセージが送られました; server={message.guild.name}, "
-                                                      f"channel={message.channel.name}, "
-                                                      f"sender={message.author.display_name}, "
-                                                      f"content={message.content}")
+        log.sc_discord.debug(f"メッセージが送られました; server={message.guild.name}, "
+                             f"channel={message.channel.name}, "
+                             f"sender={message.author.display_name}, "
+                             f"content={message.content}")
 
         response = self._chat_algorithm.input_message(message, self._client)
 
@@ -110,6 +115,9 @@ if __name__ == '__main__':
     token = args[0]
 
     class SampleChatAlgorithm(ChatAlgorithm):
+        def forget_context(self, interaction: Interaction):
+            pass
+
         def input_message(self, message: discord.Message, self_client: discord.Client) -> Optional[str]:
             # Botからのメッセージには応答しない
             if message.author.bot:

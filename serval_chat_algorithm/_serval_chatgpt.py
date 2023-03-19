@@ -8,6 +8,7 @@ import openai
 from discord import Interaction, ChannelType
 
 import discord_bot
+import log
 
 
 def _contains_any(target: str, candidate_list: Iterable[str]) -> bool:
@@ -72,19 +73,19 @@ class Context:
             raise Exception("会話受付中は履歴をロードできません")
 
         filepath = self.get_active_filepath()
-        logging.getLogger("servalchat.chatgpt").debug(f"文脈をロードします: {filepath}")
+        log.sc_chatgpt.debug(f"文脈をロードします: {filepath}")
         self._messages = []
         with open(filepath, mode="r") as fp:
             for line in fp:
                 fields = line.split("\0")
                 role = fields[1]
                 content = fields[2].encode("utf-8").decode("unicode-escape")
-                logging.getLogger("servalchat.chatgpt").debug(
+                log.sc_chatgpt.debug(
                     "loading context: {filepath}: {role} {content}".format(filepath=filepath, role=role,
                                                                            content=content.removesuffix("\n")))
 
                 self._messages.append({"role": role, "content": content})
-        logging.getLogger("servalchat.chatgpt").info(f"文脈をロードしました: {filepath}")
+        log.sc_chatgpt.info(f"文脈をロードしました: {filepath}")
 
     def push_message(self, role: str, content: str):
         self._messages.append({"role": role, "content": content})
